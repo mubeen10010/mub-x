@@ -1,0 +1,13 @@
+#!/bin/bash
+read -p "Enter new client username: " USERNAME
+read -p "Enter client password: " PASSWORD
+read -p "Enter days until expiry (e.g., 30): " DAYS
+
+EXP=$(date -d "+${DAYS} days" +"%Y-%m-%d")
+
+# Create user with NO shell access (/bin/false)
+useradd -m -s /bin/false -e "$EXP" "$USERNAME"
+echo "$USERNAME:$PASSWORD" | chpasswd
+
+echo "[✓] User $USERNAME created! Expires on $EXP."
+echo "[!] Account is jailed. Terminal access is blocked. Tunneling only."

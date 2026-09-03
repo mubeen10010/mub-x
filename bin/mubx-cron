@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# MUB-X Automated Maintenance & Health Check
+
+# A. Update Xray GeoIP / GeoSite routing assets
+curl -sL -o /usr/local/share/xray/geoip.dat https://github.com/v2fly/geoip/releases/latest/download/geoip.dat 2>/dev/null || true
+curl -sL -o /usr/local/share/xray/geosite.dat https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat 2>/dev/null || true
+
+# B. Renew SSL Certificates if within 30-day expiration window
+certbot renew --webroot -w /var/www/html --quiet --post-hook "systemctl restart nginx haproxy" 2>/dev/null || true
+
+# C. Truncate heavy log files to prevent storage exhaustion
+journalctl --vacuum-time=3d &>/dev/null
+truncate -s 0 /var/log/nginx/*access.log 2>/dev/null || true
+truncate -s 0 /var/log/nginx/*error.log 2>/dev/null || true
+
+# D. Verify all critical services are healthy (Auto-Healing)
+SERVICES=(haproxy nginx xray dropbear squid openvpn@server-tcp wg-quick@wg0 dnstt badvpn@7300)
+for svc in "${SERVICES[@]}"; do
+    if ! systemctl is-active --quiet "$svc"; then
+        systemctl restart "$svc"
+    fi
+done
+
+# E. Flush zombie memory buffers
+sync && echo 3 > /proc/sys/vm/drop_caches

@@ -1,0 +1,43 @@
+#!/bin/bash
+set -e
+
+read -p "Enter your domain (e.g., ua.mub.my.id): " DOMAIN
+if [ -z "$DOMAIN" ]; then
+    echo "[-] Domain cannot be empty."
+    exit 1
+fi
+
+mkdir -p /usr/local/etc/xray
+echo "$DOMAIN" > /usr/local/etc/xray/domain
+echo "[+] Domain set to: $DOMAIN"
+
+echo "[-] Installing dependencies..."
+apt-get update -qq && apt-get install -y certbot curl dnsutils psmisc lsof -qq
+
+echo "[-] Bruteforcing Port 80 open..."
+# 1. Stop systemd from auto-restarting default web servers
+systemctl stop apache2 nginx haproxy 2>/dev/null || true
+systemctl disable apache2 nginx haproxy 2>/dev/null || true
+
+# 2. Hard kill anything still holding the port
+if command -v fuser &> /dev/null; then fuser -k 80/tcp 2>/dev/null || true; fi
+if command -v lsof &> /dev/null; then
+    PID=$(lsof -t -i:80 2>/dev/null)
+    [ -n "$PID" ] && kill -9 $PID 2>/dev/null || true
+fi
+
+# 3. Verify port is dead
+sleep 2
+if ss -tulnp | grep -q ":80 "; then
+    echo "[!] FATAL: Port 80 is still blocked by a stubborn process."
+    ss -tulnp | grep ":80 "
+    exit 1
+fi
+
+echo "[-] Port 80 secured. Requesting SSL via Certbot..."
+if certbot certonly --standalone --agree-tos --register-unsafely-without-email -d "$DOMAIN" --non-interactive --force-renewal; then
+    echo "[✓] SSL Certificate successfully provisioned for $DOMAIN!"
+else
+    echo "[!] Certbot failed. Check your DNS propagation."
+    exit 1
+fi

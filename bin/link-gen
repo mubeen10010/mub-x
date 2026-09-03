@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+source /etc/telecom-engine.env 2>/dev/null
+BUG="${1:-$DOMAIN}"
+MYIP=$(curl -4 -s ifconfig.me 2>/dev/null || echo "$DOMAIN")
+HY2_PASS="${UUID}"
+
+C_RESET='\033[0m'
+C_BOLD='\033[1m'
+C_AMBER='\033[38;5;214m'
+C_ORANGE='\033[38;5;208m'
+C_DIM='\033[38;5;242m'
+C_WHITE='\033[38;5;255m'
+C_GREEN='\033[38;5;48m'
+C_CYAN='\033[38;5;51m'
+C_YELLOW='\033[38;5;226m'
+
+clear
+echo -e "${C_AMBER}╔══════════════════════════════════════════════════════════════════╗${C_RESET}"
+echo -e "${C_AMBER}║${C_RESET} ${C_BOLD}${C_ORANGE}MUB-X FULL SPECTRUM PROTOCOL & INJECTOR SUITE${C_RESET}                 ${C_AMBER}║${C_RESET}"
+echo -e "${C_AMBER}╚══════════════════════════════════════════════════════════════════╝${C_RESET}"
+echo -e " ${C_BOLD}Domain Gateway :${C_RESET} ${C_WHITE}${DOMAIN}${C_RESET}"
+echo -e " ${C_BOLD}Public IPv4    :${C_RESET} ${C_WHITE}${MYIP}${C_RESET}"
+echo -e " ${C_BOLD}Injected Host  :${C_RESET} ${C_GREEN}${BUG}${C_RESET}"
+echo -e "${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}"
+
+# 1. Hysteria 2
+echo -e "\n${C_BOLD}${C_ORANGE}─── [1] HYSTERIA 2 // BRUTAL UDP CORE (PORT 4433) ───${C_RESET}"
+echo -e "${C_CYAN}hysteria2://${HY2_PASS}@${DOMAIN}:4433/?sni=${DOMAIN}&insecure=1#MUBX-Hysteria2${C_RESET}"
+
+# 2. UDP Custom / ZivPN
+echo -e "\n${C_BOLD}${C_ORANGE}─── [2] UDP CUSTOM // ZIVPN GAMING CORE ───${C_RESET}"
+echo -e "  • ${C_WHITE}Host / IP   :${C_RESET} ${DOMAIN} (${MYIP})"
+echo -e "  • ${C_WHITE}UDP Port    :${C_RESET} 7300 (or any open port 1-65535)"
+echo -e "  • ${C_WHITE}Credentials :${C_RESET} System SSH username & password"
+
+# 3. Xray Proxies
+echo -e "\n${C_BOLD}${C_ORANGE}─── [3] XRAY CORE PROXIES (PORT 443) ───${C_RESET}"
+echo -e "${C_AMBER}▶ VLESS-WebSocket:${C_RESET}"
+echo -e "${C_WHITE}vless://${UUID}@${BUG}:443?encryption=none&security=tls&type=ws&host=${DOMAIN}&sni=${BUG}&path=%2Fvless-ws#MUBX-VLESS-WS${C_RESET}"
+echo -e "${C_AMBER}▶ VLESS-Reality Vision (Apple Camouflage):${C_RESET}"
+echo -e "${C_WHITE}vless://${UUID}@${DOMAIN}:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.apple.com&pbk=${REALITY_PUBKEY}&sid=${SHORT_ID}&spx=%2F&type=tcp#MUBX-Reality${C_RESET}"
+echo -e "${C_AMBER}▶ VMess-WebSocket:${C_RESET}"
+VJ="{\"v\":\"2\",\"ps\":\"MUBX-VMess\",\"add\":\"${BUG}\",\"port\":\"443\",\"id\":\"${UUID}\",\"aid\":\"0\",\"net\":\"ws\",\"path\":\"/vmess-ws\",\"type\":\"none\",\"host\":\"${DOMAIN}\",\"tls\":\"tls\",\"sni\":\"${BUG}\"}"
+echo -e "${C_WHITE}vmess://$(echo -n "$VJ" | base64 -w 0)${C_RESET}"
+echo -e "${C_AMBER}▶ Trojan-WebSocket:${C_RESET}"
+echo -e "${C_WHITE}trojan://${UUID}@${BUG}:443?security=tls&type=ws&host=${DOMAIN}&sni=${BUG}&path=%2Ftrojan-ws#MUBX-Trojan${C_RESET}"
+
+# 4. SSH & Injectors
+echo -e "\n${C_BOLD}${C_ORANGE}─── [4] SSH & INJECTOR PAYLOADS (HTTP CUSTOM / NETMOD) ───${C_RESET}"
+echo -e "${C_CYAN}▶ Direct Dropbear SSH:${C_RESET} ${MYIP}:2222 | UDPGW: 7300"
+echo -e "${C_CYAN}▶ Squid HTTP Proxy   :${C_RESET} ${MYIP}:8080 or 3128"
+echo -e "  ${C_YELLOW}Payload:${C_RESET} CONNECT [host_port] HTTP/1.1[crlf]Host: ${BUG}[crlf]Connection: Keep-Alive[crlf][crlf]"
+echo -e "${C_CYAN}▶ Nginx WebSocket SSH:${C_RESET} ${BUG}:443"
+echo -e "  ${C_YELLOW}Payload:${C_RESET} GET /ssh-ws HTTP/1.1[crlf]Host: ${DOMAIN}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]"
+
+# 5. WireGuard
+echo -e "\n${C_BOLD}${C_ORANGE}─── [5] WIREGUARD L3 KERNEL VPN (PORT 51820) ───${C_RESET}"
+WG_CONF=$(ls /etc/wireguard/client*.conf /etc/wireguard/wg0-client.conf 2>/dev/null | head -n 1)
+if [ -f "$WG_CONF" ]; then
+    echo -e "${C_GREEN}[✓] WireGuard Client Profile Found. Scan QR Code:${C_RESET}"
+    qrencode -t ansiutf8 < "$WG_CONF"
+else
+    echo -e "${C_DIM}WireGuard running on port 51820. Server: /etc/wireguard/wg0.conf${C_RESET}"
+fi
+
+# 6. OpenVPN
+echo -e "\n${C_BOLD}${C_ORANGE}─── [6] OPENVPN PROFILES ───${C_RESET}"
+echo -e "  • ${C_WHITE}TCP (1194):${C_RESET} $(ls /root/*tcp*.ovpn /etc/openvpn/*tcp*.ovpn 2>/dev/null | head -n 1 || echo 'Active on :1194')"
+echo -e "  • ${C_WHITE}UDP (2200):${C_RESET} $(ls /root/*udp*.ovpn /etc/openvpn/*udp*.ovpn 2>/dev/null | head -n 1 || echo 'Active on :2200')"
+
+# 7. SlowDNS
+echo -e "\n${C_BOLD}${C_ORANGE}─── [7] SLOWDNS / DNSTT EMERGENCY TUNNEL (PORT 53) ───${C_RESET}"
+DNSTT_PUB=$(cat /etc/dnstt/dnstt.pub 2>/dev/null || echo "NOT_FOUND")
+echo -e "  • ${C_WHITE}NS Domain:${C_RESET} dns.${DOMAIN}"
+echo -e "  • ${C_WHITE}Pubkey   :${C_RESET} ${DNSTT_PUB}"
+echo -e "  • ${C_WHITE}Client   :${C_RESET} dnstt-client -udp 1.1.1.1:53 -pubkey ${DNSTT_PUB} dns.${DOMAIN} 127.0.0.1:2222"
+
+echo -e "\n${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}\n"
