@@ -1,126 +1,29 @@
 #!/usr/bin/env bash
-C_RESET='\033[0m'
-C_BOLD='\033[1m'
-C_AMBER='\033[38;5;214m'
-C_ORANGE='\033[38;5;208m'
-C_DIM='\033[38;5;242m'
-C_WHITE='\033[38;5;255m'
-C_GREEN='\033[38;5;48m'
-C_RED='\033[38;5;196m'
-
-clear
+if [ ! -f /etc/telecom-engine.env ]; then
+  echo "[!] Run install.sh first"; exit 1; fi
 source /etc/telecom-engine.env 2>/dev/null || DOMAIN="UNCONFIGURED"
-
-STATUS_FLAG() {
-    if systemctl is-active --quiet "$1"; then
-        echo -e "${C_GREEN}[ONLINE]${C_RESET}"
-    else
-        echo -e "${C_RED}[OFFLINE]${C_RESET}"
-    fi
-}
-
-echo -e "${C_AMBER}"
-cat << "BANNER"
-  ███╗   ███╗██╗   ██╗██████╗       ██╗  ██╗
-  ████╗ ████║██║   ██║██╔══██╗      ╚██╗██╔╝
-  ██╔████╔██║██║   ██║██████╔╝ █████╗╚███╔╝ 
-  ██║╚██╔╝██║██║   ██║██╔══██╗ ╚════╝██╔██╗ 
-  ██║ ╚═╝ ██║╚██████╔╝██████╔╝      ██╔╝ ██╗
-  ╚═╝     ╚═╝ ╚═════╝ ╚═════╝       ╚═╝  ╚═╝
-BANNER
-echo -e "${C_ORANGE}   »» TACTICAL TELECOM DPI BYPASS & CARRIER ENGINE (V2 PRODUCTION) ««${C_RESET}"
-echo -e "${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}"
-echo -e " ${C_BOLD}GATEWAY NODE:${C_RESET} ${C_WHITE}${DOMAIN}${C_RESET}   ${C_BOLD}HOST IP:${C_RESET} ${C_WHITE}$(curl -4 -s ifconfig.me 2>/dev/null || echo 'Unknown')${C_RESET}"
-echo -e " ${C_BOLD}DPI DEFENSE :${C_RESET} ${C_AMBER}ACTIVE (TCPMSS 1300 + Port-Hopping NAT)${C_RESET}"
-echo -e " ${C_BOLD}EGRESS SHIELD:${C_RESET} ${C_GREEN}CLOUDFLARE WARP PROXY (:40000)${C_RESET}  ${C_BOLD}KERNEL:${C_RESET} ${C_WHITE}TCP-BBR + FQ${C_RESET}"
-echo -e "${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}"
-
-echo -e " ${C_BOLD}${C_ORANGE}DAEMON SUBSYSTEMS (12 ACTIVE CORES)${C_RESET}"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "HAProxy L4 Router:" "$(STATUS_FLAG haproxy)" \
-  "Nginx Loopback:" "$(STATUS_FLAG nginx)"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "Xray Routing Core:" "$(STATUS_FLAG xray)" \
-  "Hysteria 2 (Brutal):" "$(STATUS_FLAG hysteria-server)"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "Dropbear SSH:" "$(STATUS_FLAG dropbear)" \
-  "UDP Custom (ZivPN):" "$(STATUS_FLAG udp-custom)"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "Squid Proxy (8080/3128):" "$(STATUS_FLAG squid)" \
-  "Cloudflare WARP Egress:" "$(STATUS_FLAG warp-svc)"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "DNSTT SlowDNS:" "$(STATUS_FLAG dnstt)" \
-  "BadVPN UDPGW [7300]:" "$(STATUS_FLAG badvpn@7300)"
-printf "  %-25s %-18s %-25s %-18s\n" \
-  "WireGuard Kernel L3:" "$(STATUS_FLAG wg-quick@wg0)" \
-  "OpenVPN Dual-Stack:" "$(STATUS_FLAG openvpn@server-tcp)"
-
-echo -e "${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}"
-echo -e " ${C_BOLD}${C_AMBER}OPERATIONAL COMMANDS${C_RESET}"
-echo -e "  ${C_ORANGE}[1]${C_RESET}  ${C_WHITE}Domain / SSL Provisioner${C_RESET}"
-echo -e "  ${C_ORANGE}[2]${C_RESET}  ${C_WHITE}Generate ALL Profiles & Links${C_RESET}   ${C_DIM}(Hy2, Xray, UDP Custom, SSH, WireGuard)${C_RESET}"
-echo -e "  ${C_ORANGE}[3]${C_RESET}  ${C_WHITE}Dump Raw OpenVPN Client Config${C_RESET}"
-echo -e "  ${C_ORANGE}[4]${C_RESET}  ${C_WHITE}Provision User (SSH/UDP Custom)${C_RESET} ${C_DIM}(Creates account across all tunnels)${C_RESET}"
-echo -e "  ${C_ORANGE}[5]${C_RESET}  ${C_WHITE}Revoke User Account${C_RESET}"
-echo -e "  ${C_ORANGE}[6]${C_RESET}  ${C_WHITE}Restart Full 12-Daemon Cluster${C_RESET}"
-echo -e "  ${C_ORANGE}[7]${C_RESET}  ${C_WHITE}Inspect Live Port Matrix${C_RESET}      ${C_DIM}(ss -tulnp)${C_RESET}"
-echo -e "  ${C_ORANGE}[8]${C_RESET}  ${C_WHITE}Audit Bug-Host / SNI (mubx-probe)${C_RESET}${C_DIM}(Audit carrier zero-rated hosts)${C_RESET}"
-echo -e "  ${C_ORANGE}[0]${C_RESET}  ${C_GRAY}Exit to Shell${C_RESET}"
-echo -e "${C_DIM}──────────────────────────────────────────────────────────────────${C_RESET}"
-read -p " Select MUB-X Command [0-8]: " opt
-
+STATUS_FLAG() { systemctl is-active --quiet "$1" 2>/dev/null && echo "[ONLINE]" || echo "[OFFLINE]"; }
+clear
+echo "  MUB-X NODE: $DOMAIN"
+echo "  HAProxy: $(STATUS_FLAG haproxy) | Nginx: $(STATUS_FLAG nginx)"
+echo "  Xray: $(STATUS_FLAG xray) | Dropbear: $(STATUS_FLAG dropbear)"
+echo "  Squid: $(STATUS_FLAG squid)"
+echo ""
+echo "  [1] Set Domain / SSL"
+echo "  [2] Generate Links"
+echo "  [4] Add User"
+echo "  [5] Delete User"
+echo "  [6] Restart Services"
+echo "  [7] Show Ports"
+echo "  [0] Exit"
+read -p "Select: " opt
 case $opt in
-    1) /usr/local/bin/set-domain ;;
-    2)
-       echo ""
-       read -p " Enter Carrier Bug-Host / SNI to inject [Default: $DOMAIN]: " bughost
-       [ -z "$bughost" ] && bughost="$DOMAIN"
-       /usr/local/bin/link-gen "$bughost"
-       read -p " Press Enter to return to menu..."
-       menu
-       ;;
-    3)
-       clear
-       echo -e "${C_AMBER}=== RAW OPENVPN CLIENT CONFIGURATION ===${C_RESET}\n"
-       for f in /root/*tcp*.ovpn /etc/openvpn/*tcp*.ovpn; do
-           if [ -f "$f" ]; then
-               cat "$f"
-               break
-           fi
-       done
-       read -p " Press Enter to return to menu..."
-       menu
-       ;;
-    4)
-       read -p " Username: " u; read -p " Password: " p; read -p " Days: " d
-       useradd -e $(date -d "+$d days" +%Y-%m-%d) -s /bin/false -M "$u"
-       echo "$u:$p" | chpasswd
-       echo -e "${C_GREEN}[✓] User '$u' created.${C_RESET}"
-       read -p " Press Enter..." && menu
-       ;;
-    5)
-       read -p " Username to delete: " u
-       userdel -r "$u" 2>/dev/null || userdel "$u" 2>/dev/null
-       echo -e "${C_RED}[✓] Account '$u' deleted.${C_RESET}"
-       read -p " Press Enter..." && menu
-       ;;
-    6)
-       systemctl restart haproxy nginx xray dropbear squid udp-custom hysteria-server warp-svc dnstt
-       echo -e "${C_GREEN}[✓] 12-Daemon Cluster Reloaded.${C_RESET}"
-       sleep 1 && menu
-       ;;
-    7)
-       clear
-       ss -tulnp | grep -E ':(443|80|2222|4433|40000|8080|3128|10001|10002|10003|10004|10443|1194|2200|51820|5300|7300)'
-       read -p " Press Enter..." && menu
-       ;;
-    8)
-       echo ""
-       read -p " Enter domain / bug-host to audit: " probe_target
-       /usr/local/bin/mubx-probe "$probe_target"
-       read -p " Press Enter to return to menu..."
-       menu
-       ;;
-    0) clear; exit 0 ;;
-    *) menu ;;
-esac
+  1) /usr/local/bin/set-domain ;;
+  2) read -p "Bug-host: " b; /usr/local/bin/link-gen "${b:-$DOMAIN}" ;;
+  4) read -p "User: " u; read -p "Pass: " p; read -p "Days: " d
+     useradd -e $(date -d "+$d days" +%Y-%m-%d) -s /bin/false -M "$u"
+     echo "$u:$p" | chpasswd; echo "[+] User $u added" ;;
+  5) read -p "User: " u; userdel -r "$u" 2>/dev/null || userdel "$u"; echo "[-] Deleted" ;;
+  6) systemctl restart haproxy nginx xray dropbear squid; echo "[*] Restarted" ;;
+  7) ss -tulnp | grep -E ':(443|80|2222|8080|3128|10001|10443)' ;;
+  0) exit 0 ;; esac

@@ -1,13 +1,11 @@
 #!/bin/bash
-read -p "Enter new client username: " USERNAME
-read -p "Enter client password: " PASSWORD
-read -p "Enter days until expiry (e.g., 30): " DAYS
-
-EXP=$(date -d "+${DAYS} days" +"%Y-%m-%d")
-
-# Create user with NO shell access (/bin/false)
-useradd -m -s /bin/false -e "$EXP" "$USERNAME"
-echo "$USERNAME:$PASSWORD" | chpasswd
-
-echo "[✓] User $USERNAME created! Expires on $EXP."
-echo "[!] Account is jailed. Terminal access is blocked. Tunneling only."
+set -euo pipefail
+read -p "Username: " u
+read -p "Password: " p
+read -p "Days: " d
+[[ "$u" =~ ^[a-z_][a-z0-9_-]{2,31}$ ]] || { echo "Bad username"; exit 1; }
+[[ "$d" =~ ^[0-9]+$ ]] || { echo "Bad days"; exit 1; }
+EXP=$(date -d "+${d} days" +%Y-%m-%d)
+useradd -M -s /bin/false -e "$EXP" "$u"
+echo "$u:$p" | chpasswd
+echo "[+] $u expires $EXP"
